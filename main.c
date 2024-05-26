@@ -1,10 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#define TOKEN_DELIMETER " \t\r\n\a\""
+//important: the size of a pinter type depends on system architecture
+//ex: a pointer is 8 bytes on a 64 bit system
+//ex: a pointer is 4 bytes on a 32 bit system
+// this stores the current input
 char *line;
+// a double pointer is commonly used to reppresent an array
+// in this case the double pointer represents an array of strings
+// that stores parsed tokens / arguments
 char **args;
+// variable that determines the status of the command that got executed
 int status = 1;
 
-// https://stackoverflow.com/questions/16870485/how-can-i-read-an-input-string-of-unknown-length
 // fp (file pointer) points to a FILE object that gets the stream that the operation will be used on
 char *read_line(FILE *fp, size_t size)
 {
@@ -17,6 +26,7 @@ char *read_line(FILE *fp, size_t size)
     {
         // perror prints a message to the standard error stream which can be seen in the terminal
         perror("Shell: allocation error");
+        exit(EXIT_FAILURE);
     }
     // the while loop will end once fgetc returns EOF marking the end of a file
     while (1)
@@ -33,23 +43,56 @@ char *read_line(FILE *fp, size_t size)
         // more space needs to be allocated
         if (length == size)
         {
-            input = realloc(input, sizeof(char) * (size += 2));
+            input = realloc(input, sizeof(char) * (size += 32));
             if (!input)
             {
                 perror("Shell: reallocation error");
+                exit(EXIT_FAILURE);
             }
         }
     }
-    // a string in c should always be ended with a new line character (escape sequence)
-    input[length++] = '\n';
+    // a string in c should always be terminated with the null character
+    input[length++] = '\0';
     // free any of the string's unused space
     input = realloc(input, sizeof(char) * length);
     return input;
 }
-char **parse_line()
+char **parse_line(char *input)
 {
+    int size = 1024;
+    int counter = 0;
+    char **tokens = malloc(size * sizeof(char));
+    if (!tokens)
+    {
+        perror("Shell: allocation error");
+        exit(EXIT_FAILURE);
+    }
+    // strtok splits up strings based on a delimeter and then returns the next token
+    // it needs to be called in a loop to get all tokens and then returns NULL when
+    // there are no more tokens
+    char *token = strtok(input, TOKEN_DELIMETER);
+    while (token != NULL)
+    {
+        tokens[counter] = token;
+        counter++;
+        // if the amount of tokens exceeds the space allocated for it, then more space needs to be allocated
+        if (counter >= size)
+        {
+            size += 1024;
+            char **tokens = realloc(tokens, size);
+            if (!tokens)
+            {
+                perror("Shell: allocation error");
+                exit(EXIT_FAILURE);
+            }
+        }
+        // the string arguement nees to be supplied to only the first call, after that NULL can be passed in
+        token = strtok(NULL, TOKEN_DELIMETER);
+    }
+    tokens[counter] = NULL;
+    return tokens;
 }
-int execute_line()
+int execute_line(char **arguments)
 {
 }
 int main()
@@ -58,7 +101,12 @@ int main()
     {
         printf(">> ");
         line = read_line(stdin, 1024);
-        // args = parse_Line(input);
+        if (!line)
+        {
+            perror("Shell: error processing input");
+            exit(EXIT_FAILURE);
+        }
+        args = parse_line(line);
         // status = execute_line(args);
         // free input variable and args to avoid memory leaks
         free(line);
@@ -71,3 +119,4 @@ int main()
         }
     } while (status);
 }
+
