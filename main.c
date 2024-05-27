@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #define TOKEN_DELIMETER " \t\r\n\a\""
-//important: the size of a pinter type depends on system architecture
-//ex: a pointer is 8 bytes on a 64 bit system
-//ex: a pointer is 4 bytes on a 32 bit system
-// this stores the current input
+// important: the size of a pinter type depends on system architecture
+// ex: a pointer is 8 bytes on a 64 bit system
+// ex: a pointer is 4 bytes on a 32 bit system
+//  this stores the current input
 char *line;
 // a double pointer is commonly used to reppresent an array
 // in this case the double pointer represents an array of strings
@@ -13,6 +13,29 @@ char *line;
 char **args;
 // variable that determines the status of the command that got executed
 int status = 1;
+// builtin shell functions
+int shell_cd(char **args)
+{
+    printf("cd command called\n");
+}
+int shell_help(char **args)
+{
+    printf("help command called \n");
+}
+int shell_exit(char **args)
+{
+    exit(EXIT_SUCCESS);
+}
+
+// list of builtin shell commands and then their coresponding functions
+char *builtin_string[] = {
+    "cd",
+    "help",
+    "exit"};
+int (*builtin_functions[])(char **) = {
+    &shell_cd,
+    &shell_help,
+    &shell_exit};
 
 // fp (file pointer) points to a FILE object that gets the stream that the operation will be used on
 char *read_line(FILE *fp, size_t size)
@@ -92,8 +115,20 @@ char **parse_line(char *input)
     tokens[counter] = NULL;
     return tokens;
 }
-int execute_line(char **arguments)
+int execute_builtin(char **arguments)
 {
+
+    for (int i = 0; i < sizeof(builtin_string) / sizeof(char *); i++)
+    {
+        // strcmp compares each string character by character
+        if (strcmp(args[0], builtin_string[i]) == 0)
+        {
+            // calls the function through the function pointer and passes in the arguments
+            // and then returns the result (whether the function was successful or not)
+            int result = (*builtin_functions[i])(arguments);
+            return result;
+        }
+    }
 }
 int main()
 {
@@ -107,7 +142,7 @@ int main()
             exit(EXIT_FAILURE);
         }
         args = parse_line(line);
-        // status = execute_line(args);
+        status = execute_builtin(args);
         // free input variable and args to avoid memory leaks
         free(line);
         free(args);
@@ -119,4 +154,3 @@ int main()
         }
     } while (status);
 }
-
