@@ -17,7 +17,6 @@ int status = 1;
 // builtin shell functions
 int shell_cd(char **args)
 {
-    printf("cd command called\n");
     if (args[1] == NULL)
     {
         return 1;
@@ -25,8 +24,10 @@ int shell_cd(char **args)
     int result = chdir(args[1]);
     if (result == -1)
     {
-        printf("Shell: invalid parameters");
-    } else {
+        printf("Shell: invalid parameters\n");
+    }
+    else
+    {
         return 1;
     }
 }
@@ -36,6 +37,7 @@ int shell_help(char **args)
 }
 int shell_exit(char **args)
 {
+    // exit the program
     exit(EXIT_SUCCESS);
 }
 int shell_display_directory(char **args)
@@ -61,18 +63,63 @@ int shell_display_directory(char **args)
     free(buffer);
     return 1;
 }
+int shell_make_directory(char **args)
+{
+    // get the length of args
+    int length = 0;
+    while ((args[length] != NULL))
+    {
+        length++;
+    }
+    // check to make sure the right amount of inputs were passed in
+    // if there was more than one input then an error should be displayed
+    if (length > 2)
+    {
+        printf("Shell: too many arguments\n");
+        return 1;
+    }
+    // create a directory using the name that was supplied
+    int status = mkdir(args[1]);
+    if (status)
+    {
+        printf("Shell: mkdir failed\n");
+        return 1;
+    }
+    return 1;
+}
+int shell_echo(char **args)
+{
+    int x = 1;
+    while (args[x] != NULL)
+    {
+        printf("%s\n", args[x]);
+        x++;
+    }
+    return 1;
+}
+int shell_ls(char **args)
+{
+    printf("ls called\n");
+    return 1;
+}
 
 // list of builtin shell commands and then their coresponding functions
 char *builtin_string[] = {
     "cd",
     "help",
     "exit",
-    "directory"};
+    "directory",
+    "mkdir",
+    "echo",
+    "ls"};
 int (*builtin_functions[])(char **) = {
     &shell_cd,
     &shell_help,
     &shell_exit,
-    &shell_display_directory};
+    &shell_display_directory,
+    &shell_make_directory,
+    &shell_echo,
+    &shell_ls};
 
 // fp (file pointer) points to a FILE object that gets the stream that the operation will be used on
 char *read_line(FILE *fp, size_t size)
@@ -185,7 +232,6 @@ int main()
         free(args);
         if (status <= 0)
         {
-            printf("status is less than 0 so the shell process should quit");
             // exit will end the program
             exit(status);
         }
