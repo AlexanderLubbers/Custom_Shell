@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <direct.h>
+#include <windows.h>
 #define TOKEN_DELIMETER " \t\r\n\a\""
 // important: the size of a pinter type depends on system architecture
 // ex: a pointer is 8 bytes on a 64 bit system
@@ -52,7 +53,7 @@ int shell_display_directory(char **args)
     // to store the current working directory. This means that the corrent amount of memory will automoatically be allocated
     if ((buffer = _getcwd(NULL, 0)) == NULL)
     {
-        perror("Shell: directory command error");
+        printf("Shell: directory command error");
     }
     else
     {
@@ -97,9 +98,50 @@ int shell_echo(char **args)
     }
     return 1;
 }
+int get_directory_contents(const char *directory)
+{
+    WIN32_FIND_DATA file;
+    HANDLE hFind = NULL;
+    char path[2048];
+    // create a file mask
+    //"." means that everything will be grabbed
+    sprintf(path, "%s\\*.*", directory);
+    // verify the path
+    if ((hFind = FindFirstFile(path, &file)) == INVALID_HANDLE_VALUE)
+    {
+        printf("path not found [%s]\n", directory);
+        return 1;
+    }
+    do
+    {
+        // find first file will always return "." and ".." as the first two directories
+        if (strcmp(file.cFileName, ".") != 0 && strcmp(file.cFileName, "..") != 0)
+        {
+            // begin building up the file path
+            sprintf(path, "%s\\%s", directory, file.cFileName);
+            // determine whether the entity is a file or a folder
+            if (file.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            {
+                printf("Directory: %s\n", path);
+            }
+            else
+            {
+                printf("File: %s\n", path);
+            }
+        }
+
+    } while (FindNextFile(hFind, &file)); // find the next file
+    // cleanup
+    FindClose(hFind);
+    return 1;
+}
 int shell_ls(char **args)
 {
-    printf("ls called\n");
+    // get the current working directory
+    char *buffer;
+    buffer = _getcwd(NULL, 0);
+    get_directory_contents(buffer);
+    free(buffer);
     return 1;
 }
 
