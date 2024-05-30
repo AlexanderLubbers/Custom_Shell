@@ -27,10 +27,7 @@ int shell_cd(char **args)
     {
         printf("Shell: invalid parameters\n");
     }
-    else
-    {
-        return 1;
-    }
+    return 1;
 }
 int shell_help(char **args)
 {
@@ -64,6 +61,7 @@ int shell_display_directory(char **args)
     free(buffer);
     return 1;
 }
+
 int shell_make_directory(char **args)
 {
     // get the length of args
@@ -74,9 +72,9 @@ int shell_make_directory(char **args)
     }
     // check to make sure the right amount of inputs were passed in
     // if there was more than one input then an error should be displayed
-    if (length > 2)
+    if (length != 2)
     {
-        printf("Shell: too many arguments\n");
+        printf("Shell: invalid amount of arguments supplied for mkdir\n");
         return 1;
     }
     // create a directory using the name that was supplied
@@ -137,12 +135,59 @@ int get_directory_contents(const char *directory)
 }
 int shell_ls(char **args)
 {
-    // get the current working directory
-    char *buffer;
-    buffer = _getcwd(NULL, 0);
-    get_directory_contents(buffer);
-    free(buffer);
-    return 1;
+    // get the length of args
+    int length = 0;
+    while (args[length] != NULL)
+    {
+        length++;
+    }
+    // if the length is one then display everything in the current directory
+    if (length > 2)
+    {
+        printf("Shell: too many inputs passed into ls\n");
+        return 1;
+    }
+    if (length == 1)
+    {
+        // get the current working directory
+        char *buffer;
+        buffer = _getcwd(NULL, 0);
+        get_directory_contents(buffer);
+        free(buffer);
+        return 1;
+    }
+    else
+    {
+        // the contents of another directory needs to be dispayed
+        // get the current directory
+        char *buffer;
+        if ((buffer = _getcwd(NULL, 0)) == NULL)
+        {
+            printf("Shell: ls command error");
+        }
+        // change the directory to the one supplied by the input
+        int result = chdir(args[1]);
+        if (result == -1)
+        {
+            printf("Shell: invalid parameters\n");
+            return 1;
+        }
+        char *new_directory;
+        if ((new_directory = _getcwd(NULL, 0)) == NULL)
+        {
+            printf("Shell: error getting directory (ls)");
+        }
+        get_directory_contents(new_directory);
+
+        // change the directory back to the original one
+        int second_result = chdir(buffer);
+        if (second_result == -1)
+        {
+            printf("Shell: directory invalid (ls)");
+        }
+        free(buffer);
+        return 1;
+    }
 }
 
 // list of builtin shell commands and then their coresponding functions
