@@ -286,6 +286,43 @@ char **parse_line(char *input)
     tokens[counter] = NULL;
     return tokens;
 }
+int new_process(char **args)
+{
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
+    // convert the args array into a single string
+    char command[1024] = "";
+    for (int i = 0; args[i] != NULL; i++)
+    {
+        strcat(command, args[i]);
+        strcat(command, " ");
+    }
+    // Create a new process
+    // input1: no module name so pass in NULL to use the command line
+    // input2: pass in the command
+    // input3: pass in NULL because the process handle cannot be inherited
+    // input4: pass in NULL because the thread handle cannot be inherited
+    // input5: set the handle inheritaicne to false
+    // input6: pass in zero because there are no creating flags
+    // input7: pass in NULL so the parent's environment block will be used
+    // input8: pass in NULL so that the parent's starting directory is used
+    // input9: pointer to the STARTUPINFO structure
+    // input10: pointer to the PROCESS_INFORMATION structure
+    if (!CreateProcess(NULL, command, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+    {
+        printf("Shell: failed to execute command\n");
+        return 1;
+    }
+    // Wait until child process exits
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    // Close process and thread handles
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return 1;
+}
 int execute_builtin(char **arguments)
 {
 
@@ -300,7 +337,10 @@ int execute_builtin(char **arguments)
             return result;
         }
     }
+    int status = new_process(arguments);
+    return status;
 }
+
 int main()
 {
     do
