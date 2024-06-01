@@ -36,6 +36,16 @@ int shell_help(char **args)
 int shell_exit(char **args)
 {
     // exit the program
+    int length = 0;
+    while (args[length] != NULL)
+    {
+        length++;
+    }
+    if (length > 1)
+    {
+        printf("Shell: the exit command does not take any inputs\n");
+        return 1;
+    }
     exit(EXIT_SUCCESS);
 }
 int shell_display_directory(char **args)
@@ -189,7 +199,52 @@ int shell_ls(char **args)
         return 1;
     }
 }
-
+int shell_newfile(char **args)
+{
+    int length = 0;
+    while (args[length] != NULL)
+    {
+        length++;
+    }
+    // make sure that there is only two inputs
+    if (length > 2)
+    {
+        printf("Shell: too many inputs\n");
+        return 1;
+    }
+    if (args[1] == NULL)
+    {
+        printf("Shell: no name specified for file creation\n");
+        return 1;
+    }
+    FILE *fp;
+    // create a new file and open it for writing
+    fp = fopen(args[1], "w");
+    fclose(fp);
+    if (fp == NULL)
+    {
+        printf("Shell: new file with name: %s could not be created\n", args[1]);
+    }
+    return 1;
+}
+int shell_removefile(char **args)
+{
+    int length = 0;
+    while (args[length] != NULL)
+    {
+        length++;
+    }
+    if (length > 2)
+    {
+        printf("Shell: invalid input\n");
+        return 1;
+    }
+    if (remove(args[1]) != 0)
+    {
+        printf("Shell: unable to delete the file\n");
+    }
+    return 1;
+}
 // list of builtin shell commands and then their coresponding functions
 char *builtin_string[] = {
     "cd",
@@ -198,7 +253,9 @@ char *builtin_string[] = {
     "directory",
     "mkdir",
     "echo",
-    "ls"};
+    "ls",
+    "newfile",
+    "removefile"};
 int (*builtin_functions[])(char **) = {
     &shell_cd,
     &shell_help,
@@ -206,7 +263,9 @@ int (*builtin_functions[])(char **) = {
     &shell_display_directory,
     &shell_make_directory,
     &shell_echo,
-    &shell_ls};
+    &shell_ls,
+    &shell_newfile,
+    &shell_removefile};
 
 // fp (file pointer) points to a FILE object that gets the stream that the operation will be used on
 char *read_line(FILE *fp, size_t size)
