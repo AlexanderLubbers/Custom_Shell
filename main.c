@@ -29,10 +29,42 @@ int shell_cd(char **args)
     }
     return 1;
 }
+int print_file()
+{
+    // open the help.txt file in read mode
+    FILE *file = fopen("help.txt", "r");
+    // if the file cannot be opened then an error needs to be returned
+    if (!file)
+    {
+        printf("Shell: error opening help file");
+        return 1;
+    }
+    // create a buffer to store each line of the text file
+    char line[1024];
+    // while there is still lines to grab, grab them and then print them out
+    while (fgets(line, sizeof(line), file))
+    {
+        printf("%s", line);
+    }
+    // close the file
+    fclose(file);
+    return 1;
+}
 int shell_help(char **args)
 {
-    printf("help command called \n");
+    int length = 0;
+    while (args[length] != NULL)
+    {
+        length++;
+    }
+    if (length > 1)
+    {
+        printf("Shell: help does not accept any arguments\n");
+        return 1;
+    }
+    print_file();
 }
+
 int shell_exit(char **args)
 {
     // exit the program
@@ -245,6 +277,11 @@ int shell_removefile(char **args)
     }
     return 1;
 }
+int shell_removedirectory(char **args)
+{
+
+    return 1;
+}
 // list of builtin shell commands and then their coresponding functions
 char *builtin_string[] = {
     "cd",
@@ -255,7 +292,8 @@ char *builtin_string[] = {
     "echo",
     "ls",
     "newfile",
-    "removefile"};
+    "removefile",
+    "removedirectory"};
 int (*builtin_functions[])(char **) = {
     &shell_cd,
     &shell_help,
@@ -265,7 +303,8 @@ int (*builtin_functions[])(char **) = {
     &shell_echo,
     &shell_ls,
     &shell_newfile,
-    &shell_removefile};
+    &shell_removefile,
+    &shell_removedirectory};
 
 // fp (file pointer) points to a FILE object that gets the stream that the operation will be used on
 char *read_line(FILE *fp, size_t size)
