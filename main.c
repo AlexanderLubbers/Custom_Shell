@@ -264,6 +264,7 @@ char *confirmation()
 {
     int max = 5;
     char *buffer = (char *)malloc(max); /* allocate buffer */
+    // the buffer could not be created
     if (buffer == 0)
         return NULL;
     printf("are you sure? (yes / no)> ");
@@ -276,14 +277,16 @@ char *confirmation()
             break;
         if (!isspace(c))
         {
+            // pushes it character back input stream
             ungetc(c, stdin);
             break;
         }
     }
-
     int i = 0;
     while (1)
     {
+        // get the response from the user
+        // getchar reads one character at a time from the key board
         int c = getchar();
         if (isspace(c) || c == EOF)
         { /* at end, add terminating zero */
@@ -291,8 +294,9 @@ char *confirmation()
             break;
         }
         buffer[i] = c;
+        // if the buffer is full, then a larger buffer needs to be allocated
         if (i == max - 1)
-        { /* buffer full */
+        {
             max += max;
             buffer = (char *)realloc(buffer, max); /* get a new and larger buffer */
             if (buffer == 0)
@@ -331,9 +335,81 @@ int shell_removefile(char **args)
     }
     return 1;
 }
+void delete_directory(const char *directory)
+{
+    WIN32_FIND_DATA findFileData;
+    HANDLE hFind = INVALID_HANDLE_VALUE;
+
+    char dirSpec[MAX_PATH];
+    snprintf(dirSpec, MAX_PATH, "%s\\*", directory);
+
+    hFind = FindFirstFile(dirSpec, &findFileData);
+
+    if (hFind == INVALID_HANDLE_VALUE)
+    {
+        printf("Shell: Invalid file handle\n");
+        return;
+    }
+
+    do
+    {
+        if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0)
+        {
+            char filePath[MAX_PATH];
+            snprintf(filePath, MAX_PATH, "%s\\%s", directory, findFileData.cFileName);
+
+            if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            {
+                delete_directory(filePath);
+            }
+            else
+            {
+                if (DeleteFile(filePath))
+                {
+                    printf("Deleted file: %s\n", filePath);
+                }
+                else
+                {
+                    printf("failed to delete file: %s\n", filePath);
+                    return;
+                }
+            }
+        }
+    } while (FindNextFile(hFind, &findFileData) != 0);
+    FindClose(hFind);
+    if (RemoveDirectory(directory))
+    {
+        printf("Deleted directory: %s\n", directory);
+    }
+    else
+    {
+        printf("Failed to delete directory: %s\n", directory);
+    }
+}
 int shell_removedirectory(char **args)
 {
-
+    int length = 0;
+    while (args[length] != NULL)
+    {
+        length++;
+    }
+    if (length > 2)
+    {
+        printf("Shell: invalid input\n");
+        return 1;
+    }
+    char *confirm = confirmation();
+    if (strcmp(confirm, "no") == 0)
+    {
+        printf("Shell: aborting process\n");
+        return 1;
+    }
+    if (strcmp(confirm, "no") != 0 && strcmp(confirm, "yes") != 0)
+    {
+        printf("Shell: invalid input\n");
+        return 1;
+    }
+    delete_directory(args[1]);
     return 1;
 }
 // list of builtin shell commands and then their coresponding functions
