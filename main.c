@@ -3,6 +3,7 @@
 #include <string.h>
 #include <direct.h>
 #include <windows.h>
+#include <ctype.h>
 #define TOKEN_DELIMETER " \t\r\n\a\""
 // important: the size of a pinter type depends on system architecture
 // ex: a pointer is 8 bytes on a 64 bit system
@@ -259,6 +260,48 @@ int shell_newfile(char **args)
     }
     return 1;
 }
+char *confirmation()
+{
+    int max = 5;
+    char *buffer = (char *)malloc(max); /* allocate buffer */
+    if (buffer == 0)
+        return NULL;
+    printf("are you sure? (yes / no)> ");
+
+    while (1)
+    {
+        // skip the leading whitespace
+        int c = getchar();
+        if (c == EOF)
+            break;
+        if (!isspace(c))
+        {
+            ungetc(c, stdin);
+            break;
+        }
+    }
+
+    int i = 0;
+    while (1)
+    {
+        int c = getchar();
+        if (isspace(c) || c == EOF)
+        { /* at end, add terminating zero */
+            buffer[i] = 0;
+            break;
+        }
+        buffer[i] = c;
+        if (i == max - 1)
+        { /* buffer full */
+            max += max;
+            buffer = (char *)realloc(buffer, max); /* get a new and larger buffer */
+            if (buffer == 0)
+                return NULL;
+        }
+        i++;
+    }
+    return buffer;
+}
 int shell_removefile(char **args)
 {
     int length = 0;
@@ -267,6 +310,17 @@ int shell_removefile(char **args)
         length++;
     }
     if (length > 2)
+    {
+        printf("Shell: invalid input\n");
+        return 1;
+    }
+    char *confirm = confirmation();
+    if (strcmp(confirm, "no") == 0)
+    {
+        printf("Shell: aborting process\n");
+        return 1;
+    }
+    if (strcmp(confirm, "no") != 0 && strcmp(confirm, "yes") != 0)
     {
         printf("Shell: invalid input\n");
         return 1;
