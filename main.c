@@ -341,8 +341,14 @@ void delete_directory(const char *directory)
     HANDLE hFind = INVALID_HANDLE_VALUE;
 
     char dirSpec[MAX_PATH];
+    // snprintf is used to format a string and store it in a buffer
+    // %s\\* is the format string. This will tell the function that a string will be inserted at this point
+    // in the string followed by \*
+    // This means that everything under a current directory will be grabbed
     snprintf(dirSpec, MAX_PATH, "%s\\*", directory);
 
+    // verify that the path the user supplied is valid
+    // find first file is a windows api function that finds the first file or directory
     hFind = FindFirstFile(dirSpec, &findFileData);
 
     if (hFind == INVALID_HANDLE_VALUE)
@@ -353,6 +359,7 @@ void delete_directory(const char *directory)
 
     do
     {
+        // ignore files that have the name "." or ".."
         if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0)
         {
             char filePath[MAX_PATH];
@@ -360,10 +367,13 @@ void delete_directory(const char *directory)
 
             if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             {
+                // if there is another directory in the folder to be deleted, then the contents of that directory
+                // needs to be deleted as well
                 delete_directory(filePath);
             }
             else
             {
+                // delete all the files in the directory to be deleted
                 if (DeleteFile(filePath))
                 {
                     printf("Deleted file: %s\n", filePath);
@@ -377,6 +387,7 @@ void delete_directory(const char *directory)
         }
     } while (FindNextFile(hFind, &findFileData) != 0);
     FindClose(hFind);
+    // now that all the contents in the directory have been deleted, the actually directory can now be deleted
     if (RemoveDirectory(directory))
     {
         printf("Deleted directory: %s\n", directory);
@@ -521,13 +532,33 @@ int new_process(char **args)
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     ZeroMemory(&pi, sizeof(pi));
-    // convert the args array into a single string
-    char command[1024] = "";
+
+    // Calculate the required length for the command string
+    int command_len = 0;
     for (int i = 0; args[i] != NULL; i++)
     {
-        strcat(command, args[i]);
-        strcat(command, " ");
+        command_len += strlen(args[i]) + 3; // 2 for quotes, 1 for space
     }
+    // Allocate memory for the command string
+    char *command = (char *)malloc(command_len + 1);
+    if (command == NULL)
+    {
+        printf("Shell: memory allocation failed\n");
+        return 1;
+    }
+    // Construct the command string with proper quoting
+    command[0] = '\0';
+    for (int i = 0; args[i] != NULL; i++)
+    {
+        strcat(command, "\"");
+        strcat(command, args[i]);
+        strcat(command, "\"");
+        if (args[i + 1] != NULL)
+        {
+            strcat(command, " ");
+        }
+    }
+
     // Create a new process
     // input1: no module name so pass in NULL to use the command line
     // input2: pass in the command
@@ -542,6 +573,7 @@ int new_process(char **args)
     if (!CreateProcess(NULL, command, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
     {
         printf("Shell: failed to execute command\n");
+        free(command);
         return 1;
     }
     // Wait until child process exits
@@ -549,6 +581,7 @@ int new_process(char **args)
     // Close process and thread handles
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
+    free(command);
     return 1;
 }
 int execute_builtin(char **arguments)
